@@ -13,7 +13,7 @@
 */
 
 void ZAC_GuiPannel_Draw(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, ZAC_GuiPannel *gui, const ZAC_Mat4x4 *proj) {
- VkCommandBuffer cmd = __ZAC_Ctxrenderer_AquireCmdBuffer(ctx);
+ VkCommandBuffer cmd = __ZAC_Ctxrenderer_AcquireCmdBuffer(ctx);
  
  ZAC_GuiPC _data_pc;
 
@@ -75,7 +75,7 @@ void ZAC_GuiText_Draw(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, ZAC_GuiText *txt, co
 /*
  str_len is included so we dont have to use strlen everyframe 
 */
- VkCommandBuffer cmd = __ZAC_Ctxrenderer_AquireCmdBuffer(ctx);
+ VkCommandBuffer cmd = __ZAC_Ctxrenderer_AcquireCmdBuffer(ctx);
 
  ZAC_FontIterationFlag flag;
  ZAC_Vec2 advance_position;
