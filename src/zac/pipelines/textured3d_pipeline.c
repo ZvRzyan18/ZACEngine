@@ -1,22 +1,12 @@
 #define __ZAC_INTERNAL__
 
+#include "zac/pipelines/textured3d_pipeline.h"
 #include "zac/system/system.h"
-#include "zac/pipelines/gui_pannel_pipeline.h"
 #include <string.h>
 
-/*
- alignment
-  uint : 4
-  int  : 4
-  float: 4
-  vec2 : 8
-  vec3 : 16
-  vec4 : 16
-  mat3 : 16
-  mat4 : 16
-*/
 
-void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr_t shaders[2], size_t shader_size[2], size_t pc_size) {
+
+void __ZAC_CreateTextured3DPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr_t shaders[2], size_t shader_size[2], size_t vertex_size, size_t vertex_offsets[3]) {
 	VkShaderModule v_sm, f_sm;
 	VkShaderModuleCreateInfo vertex_module_create_info;
 	memset(&vertex_module_create_info, 0, sizeof(VkShaderModuleCreateInfo));
@@ -37,12 +27,13 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  if(vkCreateShaderModule(ctx->_device, &fragment_module_create_info, NULL, &f_sm) != VK_SUCCESS) {
  	ZAC_System_Panic(" failed creating shader module");
  }
- 
+
+
 
 /*
  Dynamic states
+ these two only guarantees by specification
 */
-
  VkDynamicState dynamic_states[2] = {
   VK_DYNAMIC_STATE_VIEWPORT,
   VK_DYNAMIC_STATE_SCISSOR
@@ -76,13 +67,41 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
 /*
  vertex input
 */
+ VkVertexInputBindingDescription vertex_input_binding;
+ memset(&vertex_input_binding, 0, sizeof(VkVertexInputBindingDescription));
+ vertex_input_binding.binding = 0;
+ vertex_input_binding.stride = vertex_size;
+ vertex_input_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+
+ VkVertexInputAttributeDescription vertex_attributes[3];
+ memset(vertex_attributes, 0, sizeof(VkVertexInputAttributeDescription) * 3);
+ 
+ //positions
+ vertex_attributes[0].binding = 0;
+ vertex_attributes[0].location = 0;
+ vertex_attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+ vertex_attributes[0].offset = vertex_offsets[0];
+
+ //normals
+ vertex_attributes[1].binding = 0;
+ vertex_attributes[1].location = 1;
+ vertex_attributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+ vertex_attributes[1].offset = vertex_offsets[1];
+
+ //uv
+ vertex_attributes[2].binding = 0;
+ vertex_attributes[2].location = 2;
+ vertex_attributes[2].format = VK_FORMAT_R32G32_SFLOAT;
+ vertex_attributes[2].offset = vertex_offsets[2];
+ 
  VkPipelineVertexInputStateCreateInfo vertex_input_state;
  memset(&vertex_input_state, 0, sizeof(VkPipelineVertexInputStateCreateInfo));
  vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
- vertex_input_state.vertexBindingDescriptionCount = 0;
- vertex_input_state.pVertexBindingDescriptions = VK_NULL_HANDLE; // Optional
- vertex_input_state.vertexAttributeDescriptionCount = 0;
- vertex_input_state.pVertexAttributeDescriptions = VK_NULL_HANDLE; // Optional
+ vertex_input_state.vertexBindingDescriptionCount = 1;
+ vertex_input_state.pVertexBindingDescriptions = &vertex_input_binding;
+ vertex_input_state.vertexAttributeDescriptionCount = 3;
+ vertex_input_state.pVertexAttributeDescriptions = vertex_attributes;
 
 /*
  input assembly
@@ -116,7 +135,7 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
 	rasterization_state.rasterizerDiscardEnable = VK_FALSE;
 	rasterization_state.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterization_state.lineWidth = 1.0f;
-	rasterization_state.cullMode = VK_CULL_MODE_NONE;
+	rasterization_state.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterization_state.depthBiasEnable = VK_FALSE;
  rasterization_state.depthBiasConstantFactor = 0.0f; 
  rasterization_state.depthBiasClamp = 0.0f;
@@ -142,8 +161,8 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
  memset(&depth_stencil_state, 0, sizeof(VkPipelineDepthStencilStateCreateInfo));
  depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
- depth_stencil_state.depthTestEnable = VK_FALSE; 
- depth_stencil_state.depthWriteEnable = VK_FALSE;
+ depth_stencil_state.depthTestEnable = VK_TRUE; 
+ depth_stencil_state.depthWriteEnable = VK_TRUE;
  depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS;
  depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
  depth_stencil_state.minDepthBounds = 0.0f;
@@ -180,25 +199,26 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  color_blend_state.blendConstants[2] = 0.0f;
  color_blend_state.blendConstants[3] = 0.0f;
 
-
+ VkDescriptorSetLayout descriptor_set_layout[2] = {ctx->_textured_descriptor_layout, ctx->_ubo_descriptor_layout};
 /*
  pipeline layout
 */
+/*
  VkPushConstantRange push_constant_range;
  memset(&push_constant_range, 0, sizeof(VkPushConstantRange));
  push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
  push_constant_range.offset = 0;
  push_constant_range.size = pc_size;
-
+*/
  VkPipelineLayoutCreateInfo pipeline_layout_create_info;
  memset(&pipeline_layout_create_info, 0, sizeof(VkPipelineLayoutCreateInfo));
  pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
- pipeline_layout_create_info.setLayoutCount = 0; 
- pipeline_layout_create_info.pSetLayouts = NULL; 
- pipeline_layout_create_info.pushConstantRangeCount = 1; 
- pipeline_layout_create_info.pPushConstantRanges = &push_constant_range; 
+ pipeline_layout_create_info.setLayoutCount = 2; 
+ pipeline_layout_create_info.pSetLayouts = descriptor_set_layout; 
+ pipeline_layout_create_info.pushConstantRangeCount = 0; 
+ pipeline_layout_create_info.pPushConstantRanges = NULL;//&push_constant_range; 
 
- if(vkCreatePipelineLayout(ctx->_device, &pipeline_layout_create_info, NULL, &p->gui_panel_pipeline_layout) != VK_SUCCESS) {
+ if(vkCreatePipelineLayout(ctx->_device, &pipeline_layout_create_info, NULL, &p->textured_3d_pipeline_layout) != VK_SUCCESS) {
   ZAC_System_Panic("failed creating pipeline layout");
  }
 
@@ -229,11 +249,17 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE; 
  graphics_pipeline_create_info.basePipelineIndex = -1;
 
- if(vkCreateGraphicsPipelines(ctx->_device, NULL, 1, &graphics_pipeline_create_info, NULL, &p->gui_panel_pipeline) != VK_SUCCESS) {
+ if(vkCreateGraphicsPipelines(ctx->_device, NULL, 1, &graphics_pipeline_create_info, NULL, &p->textured_3d_pipeline) != VK_SUCCESS) {
   ZAC_System_Panic("failed creating pipeline.");
  }
 
+/* 
+ VkPipeline creates its own copy of shader
+ so we dont need these
+*/
  vkDestroyShaderModule(ctx->_device, v_sm, NULL);
  vkDestroyShaderModule(ctx->_device, f_sm, NULL);
 }
+
+
 
