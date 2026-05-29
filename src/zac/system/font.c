@@ -84,19 +84,12 @@ ZAC_Font* ZAC_Font_Init(const char *fpath, uint32_t quality) {
 
 
 ZAC_Texture* ZAC_Font_GetTexture(ZAC_Ctxrender *ctx, ZAC_Gpualloc *alloc, ZAC_Font *font) {
-/* if(ctx->_is_unorm && !font->_filtered) {
+ if(ctx->_is_unorm && !font->_filtered) {
   for(uint32_t i = 0; i < (font->_resolution_width * font->_resolution_height); i++) {
    font->_raw_data_bytes[i] = ZAC_ToLinear_Uint(font->_raw_data_bytes[i]);
   }
   font->_filtered = 1;
  } else if(!ctx->_is_unorm && !font->_filtered) {
-  for(uint32_t i = 0; i < (font->_resolution_width * font->_resolution_height); i++) {
-   font->_raw_data_bytes[i] = ZAC_ToSRGB_Uint(font->_raw_data_bytes[i]);
-  }
-  font->_filtered = 1;
- }*/
- 
- if(!font->_filtered) {
   for(uint32_t i = 0; i < (font->_resolution_width * font->_resolution_height); i++) {
    font->_raw_data_bytes[i] = ZAC_ToSRGB_Uint(font->_raw_data_bytes[i]);
   }
