@@ -122,6 +122,9 @@ static void buffer_staging(ZAC_Ctxrender *ctx, ZAC_Gpuallocation allocation, VkB
    range.size = ZAC_NextMultipleOf(requirements.size, ctx->_physical_device_properties.limits.nonCoherentAtomSize);
    vkFlushMappedMemoryRanges(ctx->_device, 1, &range); 
 
+   if(vkResetCommandBuffer(ctx->_immediate_cmd_buffer, 0) != VK_SUCCESS) {
+    ZAC_System_Panic("ZAC_Ctxrender_BeginUpdate() : failed.");
+   }
 
    VkCommandBufferBeginInfo begin_info;
    memset(&begin_info, 0, sizeof(VkCommandBufferBeginInfo));
@@ -210,6 +213,9 @@ static void image_staging(ZAC_Ctxrender *ctx, ZAC_Gpuallocation allocation, VkIm
  range.size = ZAC_NextMultipleOf(requirements.size, ctx->_physical_device_properties.limits.nonCoherentAtomSize);
  vkFlushMappedMemoryRanges(ctx->_device, 1, &range); 
 
+ if(vkResetCommandBuffer(ctx->_immediate_cmd_buffer, 0) != VK_SUCCESS) {
+  ZAC_System_Panic("ZAC_Ctxrender_BeginUpdate() : failed.");
+ }
 
  VkCommandBufferBeginInfo begin_info;
  memset(&begin_info, 0, sizeof(VkCommandBufferBeginInfo));
@@ -440,7 +446,7 @@ ZAC_Texture* ZAC_Gpualloc_PushBindTexture(ZAC_Ctxrender *ctx, ZAC_Gpualloc *gpua
  ZAC_Texture *texture = (ZAC_Texture*)ZAC_System_AllocateMemory(sizeof(ZAC_Texture));
   
  VkFormat img_format;
- /*
+ 
  if(ctx->_is_unorm) {
   switch(format) {
   	case ZAC_TEXTURE_FORMAT_RGBA:
@@ -450,7 +456,7 @@ ZAC_Texture* ZAC_Gpualloc_PushBindTexture(ZAC_Ctxrender *ctx, ZAC_Gpualloc *gpua
     img_format = VK_FORMAT_R8_UNORM;
   	break;
   }
- } else {*/
+ } else {
   switch(format) {
   	case ZAC_TEXTURE_FORMAT_RGBA:
     img_format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -459,7 +465,7 @@ ZAC_Texture* ZAC_Gpualloc_PushBindTexture(ZAC_Ctxrender *ctx, ZAC_Gpualloc *gpua
     img_format = VK_FORMAT_R8_SRGB;
   	break;
   }
- //}
+ }
 
  
  texture->_image = create_image(ctx, w, h, format, img_format);
@@ -473,7 +479,7 @@ ZAC_Texture* ZAC_Gpualloc_PushBindTexture(ZAC_Ctxrender *ctx, ZAC_Gpualloc *gpua
  
  texture->_allocation._memory = gpualloc;
  texture->_allocation._offset = ZAC_NextMultipleOf(gpualloc->_current_size, requirements.alignment);
- texture->_allocation._non_coherent_size = ZAC_NextMultipleOf(requirements.size, requirements.alignment);
+ texture->_allocation._non_coherent_size = requirements.size;
  
  texture->_allocation._memory = gpualloc;
  texture->_allocation._size = requirements.size;

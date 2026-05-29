@@ -20,8 +20,8 @@ void ZAC_GuiPannel_Draw(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, ZAC_GuiPannel *gui
 	_data_pc.color = gui->color;
 	_data_pc.transform = ZAC_Mat4x4_Mul(*proj, gui->transform);
 	
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, p->gui_panel_pipeline);
- vkCmdPushConstants(cmd, p->gui_panel_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(_data_pc), &_data_pc);
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, p->gui_pannel_pipeline);
+ vkCmdPushConstants(cmd, p->gui_pannel_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(_data_pc), &_data_pc);
 
 	vkCmdSetViewport(cmd, 0, 1, &ctx->_viewport);
  
@@ -138,5 +138,39 @@ void ZAC_GuiText_Draw(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, ZAC_GuiText *txt, co
 
 }
 
+
+
+
+void ZAC_GuiTexturedPannel_Draw(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, ZAC_GuiTexturedPannel *gui, const ZAC_Mat4x4 *proj, uintptr_t descriptor) {
+ VkCommandBuffer cmd = __ZAC_Ctxrenderer_AcquireCmdBuffer(ctx);
+
+ ZAC_GuiPC _data_pc;
+
+	_data_pc.transform = ZAC_Mat4x4_Mul(*proj, gui->transform);
+
+ const VkDescriptorSet dc = (VkDescriptorSet)descriptor;
+
+ uint32_t _set = 0;
+	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, p->gui_textured_pannel_pipeline);
+ vkCmdPushConstants(cmd, p->gui_textured_pannel_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ZAC_GuiPC), &_data_pc);
+ vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, p->gui_textured_pannel_pipeline_layout, _set, 1, &dc, 0, NULL);
+
+ if(gui->clipper.x == gui->clipper.x) {
+  ZAC_Vec2 size = {(float)ctx->_screen_size.width, (float)ctx->_screen_size.height};
+  ZAC_Vec4 v = ZAC_Mat4x4_UnprojectRect(gui->clipper, ctx->_projection_2d, size);
+  VkRect2D scissor;
+  scissor.offset.x = (uint32_t)ZAC_Round(v.x);
+  scissor.offset.y = (uint32_t)ZAC_Round(v.y);
+  scissor.extent.width = (uint32_t)ZAC_Round(v.z);
+  scissor.extent.height = (uint32_t)ZAC_Round(v.w);
+
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
+ } else {
+  vkCmdSetScissor(cmd, 0, 1, &ctx->_scissor);
+ }
+	vkCmdSetViewport(cmd, 0, 1, &ctx->_viewport);
+ vkCmdDraw(cmd, 6, 1, 0, 0);
+
+}
 
 

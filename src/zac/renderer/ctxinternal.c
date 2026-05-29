@@ -29,13 +29,13 @@ static const char* platform_instance_extensions[7] = {
 
 static int any_of_platform_surface(const char *str) {
  return
-  strcmp(str, platform_instance_extensions[0]) == 0 || 
-  strcmp(str, platform_instance_extensions[1]) == 0 ||
-  strcmp(str, platform_instance_extensions[2]) == 0 ||
-  strcmp(str, platform_instance_extensions[3]) == 0 ||
-  strcmp(str, platform_instance_extensions[4]) == 0 ||
-  strcmp(str, platform_instance_extensions[5]) == 0 ||
-  strcmp(str, platform_instance_extensions[6]) == 0;
+  (strcmp(str, platform_instance_extensions[0]) == 0) || 
+  (strcmp(str, platform_instance_extensions[1]) == 0) ||
+  (strcmp(str, platform_instance_extensions[2]) == 0) ||
+  (strcmp(str, platform_instance_extensions[3]) == 0) ||
+  (strcmp(str, platform_instance_extensions[4]) == 0) ||
+  (strcmp(str, platform_instance_extensions[5]) == 0) ||
+  (strcmp(str, platform_instance_extensions[6]) == 0);
 }
 
 
@@ -187,10 +187,19 @@ void __ZAC_QueryPhysicalDevice(ZAC_Ctxrender *ctx) {
  }
  
  selected_index = 0xFFFFFFFF;
-  
+
+
  /*select a feature */
+ /*discrete gpu*/
  for(uint32_t i = 0; i < physical_device_count; i++) {
-  if(__ZAC_CheckDeviceCapabilities(equiped_gpu[i], gpu_features[i], ctx)) {
+  if(__ZAC_CheckDeviceCapabilities(equiped_gpu[i], gpu_features[i], ctx) && gpu_properties[i].deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+   selected_index = i;
+   break;
+  }
+ }
+ /*integrated gpu fallback*/
+ for(uint32_t i = 0; (i < physical_device_count) && selected_index == 0xFFFFFFFF; i++) {
+  if(__ZAC_CheckDeviceCapabilities(equiped_gpu[i], gpu_features[i], ctx) && gpu_properties[i].deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
    selected_index = i;
    break;
   }
@@ -298,6 +307,7 @@ void __ZAC_QuerySurfaceCapabilities(ZAC_Ctxrender *ctx) {
 
 
  VkBool32 has_chosen = VK_FALSE;
+ 
  //priority (standardized)
  for(uint32_t i = 0; i < surface_format_count; i++) {
   if((surface_format[i].format == VK_FORMAT_B8G8R8A8_SRGB && surface_format[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -309,8 +319,8 @@ void __ZAC_QuerySurfaceCapabilities(ZAC_Ctxrender *ctx) {
    break;
   }
  }
- /*
- //fallback
+ 
+ //fallback (has to perform manual gamma correction inside of fragment shader)
  for(uint32_t i = 0; (i < surface_format_count) && !has_chosen; i++) {
   if((surface_format[i].format == VK_FORMAT_B8G8R8A8_UNORM && surface_format[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
   || (surface_format[i].format == VK_FORMAT_R8G8B8A8_UNORM && surface_format[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -322,13 +332,15 @@ void __ZAC_QuerySurfaceCapabilities(ZAC_Ctxrender *ctx) {
    break;
   }
  }
- */
+ 
  if(!has_chosen)
   ZAC_System_Panic("__ZAC_QuerySurfaceCapabilities() : no image format specified.");
  
  /*its guaranteed, no need checks */
  ctx->_present_mode = VK_PRESENT_MODE_FIFO_KHR;
-/*
+ 
+ /*mailbox is not a good idea for mobile integrated gpu*/
+ /*
  for(uint32_t i = 0; i < present_mode_count; i++) {
   if(present_mode[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
    ctx->_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
@@ -449,6 +461,7 @@ void __ZAC_CreateSwapchainImages(ZAC_Ctxrender *ctx) {
   memset(&image_view_create_info, 0, sizeof(VkImageViewCreateInfo));
   image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+
   image_view_create_info.format = ctx->_surface_format.format;
   
   image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -472,13 +485,14 @@ void __ZAC_CreateSwapchainImages(ZAC_Ctxrender *ctx) {
  
  
  /*depth image*/
- VkFormat formats[3] = {
+ VkFormat formats[4] = {
  	VK_FORMAT_D32_SFLOAT_S8_UINT,
  	VK_FORMAT_D24_UNORM_S8_UINT,
  	VK_FORMAT_D32_SFLOAT,
+ 	VK_FORMAT_D16_UNORM,
  };
  
- ctx->_depth_format = __ZAC_FindImageFormat(ctx->_physical_device, formats, 3, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+ ctx->_depth_format = __ZAC_FindImageFormat(ctx->_physical_device, formats, 4, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
 
  ctx->_swapchain_depth_images = (ZAC_SwapchainImage*)ZAC_System_AllocateMemory(sizeof(ZAC_SwapchainImage) * ctx->_max_in_flight_frames);
@@ -783,7 +797,10 @@ void __ZAC_DepthBufferImageTransition(ZAC_Ctxrender *ctx) {
  image_memory_barrier.subresourceRange.levelCount = 1;
  image_memory_barrier.subresourceRange.baseArrayLayer = 0;
  image_memory_barrier.subresourceRange.layerCount = 1;
- 
+
+ if(vkResetCommandBuffer(ctx->_immediate_cmd_buffer, 0) != VK_SUCCESS) {
+  ZAC_System_Panic("ZAC_Ctxrender_BeginUpdate() : failed.");
+ }
 
  VkCommandBufferBeginInfo begin_info;
  memset(&begin_info, 0, sizeof(VkCommandBufferBeginInfo));
@@ -921,7 +938,9 @@ void __ZAC_CreateDummyObjects(ZAC_Ctxrender *ctx) {
 /*
  image transition
 */
-
+ if(vkResetCommandBuffer(ctx->_immediate_cmd_buffer, 0) != VK_SUCCESS) {
+  ZAC_System_Panic("ZAC_Ctxrender_BeginUpdate() : failed.");
+ }
 
  VkCommandBufferBeginInfo begin_info;
  memset(&begin_info, 0, sizeof(VkCommandBufferBeginInfo));
