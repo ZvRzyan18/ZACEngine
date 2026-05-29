@@ -198,7 +198,7 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  pipeline_layout_create_info.pushConstantRangeCount = 1; 
  pipeline_layout_create_info.pPushConstantRanges = &push_constant_range; 
 
- if(vkCreatePipelineLayout(ctx->_device, &pipeline_layout_create_info, NULL, &p->gui_panel_pipeline_layout) != VK_SUCCESS) {
+ if(vkCreatePipelineLayout(ctx->_device, &pipeline_layout_create_info, NULL, &p->gui_pannel_pipeline_layout) != VK_SUCCESS) {
   ZAC_System_Panic("failed creating pipeline layout");
  }
 
@@ -222,14 +222,14 @@ void __ZAC_CreateGuiPannelPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintptr
  graphics_pipeline_create_info.pColorBlendState = &color_blend_state;
  graphics_pipeline_create_info.pDynamicState = &dynamic_state_create_info;
  
- graphics_pipeline_create_info.layout = p->gui_panel_pipeline_layout;
+ graphics_pipeline_create_info.layout = p->gui_pannel_pipeline_layout;
  graphics_pipeline_create_info.renderPass = ctx->_render_pass;
  graphics_pipeline_create_info.subpass = 0;
  
  graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE; 
  graphics_pipeline_create_info.basePipelineIndex = -1;
 
- if(vkCreateGraphicsPipelines(ctx->_device, NULL, 1, &graphics_pipeline_create_info, NULL, &p->gui_panel_pipeline) != VK_SUCCESS) {
+ if(vkCreateGraphicsPipelines(ctx->_device, NULL, 1, &graphics_pipeline_create_info, NULL, &p->gui_pannel_pipeline) != VK_SUCCESS) {
   ZAC_System_Panic("failed creating pipeline.");
  }
 
