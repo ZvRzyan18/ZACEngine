@@ -292,6 +292,6 @@ const ZAC_Mat4x4* ZAC_Ctxrender_Get3DProjection(ZAC_Ctxrender *ctx) {
 }
 
 
-VkCommandBuffer __ZAC_Ctxrenderer_AquireCmdBuffer(ZAC_Ctxrender *ctx) {
+VkCommandBuffer __ZAC_Ctxrenderer_AcquireCmdBuffer(ZAC_Ctxrender *ctx) {
  return ctx->_command_buffers[ctx->_current_frame];
 }

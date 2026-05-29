@@ -88,7 +88,7 @@ struct ZAC_Ctxrender {
 
 };
 
-VkCommandBuffer __ZAC_Ctxrenderer_AquireCmdBuffer(ZAC_Ctxrender *ctx);
+VkCommandBuffer __ZAC_Ctxrenderer_AcquireCmdBuffer(ZAC_Ctxrender *ctx);
 
 #endif
 
