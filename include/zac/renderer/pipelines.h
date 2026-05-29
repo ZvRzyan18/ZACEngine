@@ -13,11 +13,14 @@ typedef struct ZAC_Pipelines ZAC_Pipelines;
 #include "volk.h"
 /* collection of pre baked pipelines */
 struct ZAC_Pipelines {
- VkPipeline gui_panel_pipeline;
- VkPipelineLayout gui_panel_pipeline_layout;
+ VkPipeline gui_pannel_pipeline;
+ VkPipelineLayout gui_pannel_pipeline_layout;
 
  VkPipeline gui_text_pipeline;
  VkPipelineLayout gui_text_pipeline_layout;
+
+ VkPipeline gui_textured_pannel_pipeline;
+ VkPipelineLayout gui_textured_pannel_pipeline_layout;
 
 
  VkPipeline textured_3d_pipeline;
