@@ -3,6 +3,7 @@
 #include "zac/renderer/pipelines.h"
 #include "zac/pipelines/gui_pannel_pipeline.h"
 #include "zac/pipelines/gui_text_pipeline.h"
+#include "zac/pipelines/gui_textured_pannel_pipeline.h"
 #include "zac/system/system.h"
 #include <string.h>
 
@@ -54,6 +55,16 @@ ZAC_Pipelines* ZAC_Pipelines_Init(ZAC_Ctxrender *ctx, const char *dir) {
   ZAC_System_FreeMemory((void*)shaders[1]);
  }
 
+ {
+
+  shaders[0] = (uintptr_t)ReadShaderData(dir, "shaders/gui_textured_pannel.vert.spv", &shader_size[0]);
+  shaders[1] = (uintptr_t)ReadShaderData(dir, "shaders/gui_textured_pannel.frag.spv", &shader_size[1]);
+
+  __ZAC_CreateTexturedPannelPipeline(ctx, pipelines, shaders, shader_size, sizeof(ZAC_GuiPC));
+
+  ZAC_System_FreeMemory((void*)shaders[0]);
+  ZAC_System_FreeMemory((void*)shaders[1]);
+ }
  return pipelines;
 }
 
@@ -62,11 +73,14 @@ ZAC_Pipelines* ZAC_Pipelines_Init(ZAC_Ctxrender *ctx, const char *dir) {
 
 void ZAC_Pipelines_Destroy(ZAC_Ctxrender *ctx, ZAC_Pipelines *p) {
 
+ vkDestroyPipeline(ctx->_device, p->gui_textured_pannel_pipeline, NULL);
+ vkDestroyPipelineLayout(ctx->_device, p->gui_textured_pannel_pipeline_layout, NULL);
+
  vkDestroyPipeline(ctx->_device, p->gui_text_pipeline, NULL);
  vkDestroyPipelineLayout(ctx->_device, p->gui_text_pipeline_layout, NULL);
 
- vkDestroyPipeline(ctx->_device, p->gui_panel_pipeline, NULL);
- vkDestroyPipelineLayout(ctx->_device, p->gui_panel_pipeline_layout, NULL);
+ vkDestroyPipeline(ctx->_device, p->gui_pannel_pipeline, NULL);
+ vkDestroyPipelineLayout(ctx->_device, p->gui_pannel_pipeline_layout, NULL);
  
  ZAC_System_FreeMemory(p);
 }

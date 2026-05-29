@@ -6,6 +6,9 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
+
+#include "stb_image.h"
 
 static atomic_int memory_counter = ATOMIC_VAR_INIT(0);
 
@@ -86,3 +89,45 @@ void* ZAC_System_ReadDataFromFile(const char* file, size_t *out_size) {
  
  return buffer;
 }
+
+
+
+void ZAC_System_ReadImage(const char* file, void **pixels, uint16_t *w, uint16_t *h, uint8_t *channels) {
+ int c, ww, hh, manual_copy;
+ uint8_t *data = (uint8_t*)stbi_load(file, &ww, &hh, &c, 0);
+ 
+ manual_copy = 0;
+ if(c == 1) {
+  c = 1;
+  manual_copy = 0;
+ } else if(c == 3) {
+  c = 4;
+  manual_copy = 1;
+ } else if(c == 4) {
+  c = 4;
+  manual_copy = 0;
+ }
+ *pixels = ZAC_System_AllocateMemory(ww * hh * c);
+
+ if(manual_copy) {
+  for(int i = 0; i < (ww * hh); i++) {
+   uint8_t *pp = (uint8_t*)*pixels;
+   
+   pp[i * 4 + 0] = data[i * 3 + 0];
+   pp[i * 4 + 1] = data[i * 3 + 1];
+   pp[i * 4 + 2] = data[i * 3 + 2];
+   pp[i * 4 + 3] = 0xFF;
+  }
+ } else {
+  memcpy(*pixels, data, ww * hh * c);
+ }
+ 
+ *w = (uint16_t)ww;
+ *h = (uint16_t)hh;
+ 
+ if(channels != NULL)
+  *channels = (uint8_t)c;
+
+ stbi_image_free(data);
+}
+

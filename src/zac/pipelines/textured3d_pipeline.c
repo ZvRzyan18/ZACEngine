@@ -242,7 +242,7 @@ void __ZAC_CreateTextured3DPipeline(ZAC_Ctxrender *ctx, ZAC_Pipelines *p, uintpt
  graphics_pipeline_create_info.pColorBlendState = &color_blend_state;
  graphics_pipeline_create_info.pDynamicState = &dynamic_state_create_info;
  
- graphics_pipeline_create_info.layout = p->gui_panel_pipeline_layout;
+ graphics_pipeline_create_info.layout = p->textured_3d_pipeline_layout;
  graphics_pipeline_create_info.renderPass = ctx->_render_pass;
  graphics_pipeline_create_info.subpass = 0;
  
